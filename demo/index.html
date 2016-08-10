@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+  <head>
+    <title>tc-bodymovin-animation demo</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1, user-scalable=yes">
+    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+
+    <link rel="import" href="../../iron-demo-helpers/demo-pages-shared-styles.html">
+    <link rel="import" href="../../iron-demo-helpers/demo-snippet.html">
+
+    <link rel="import" href="../tc-bodymovin-animation.html">
+
+    <style is="custom-style" include="demo-pages-shared-styles">
+    </style>
+  </head>
+  <body>
+
+    <div class="vertical-section-container centered">
+      <h3>Basic tc-bodymovin-animation Demo</h3>
+      <demo-snippet>
+        <template>
+          
+          <style>
+            tc-bodymovin-animation {
+              width: 100%;
+              height: 200px;
+            }
+          </style>
+
+          <tc-bodymovin-animation 
+              animation-json-url="../../bodymovin/demo/happy2016/data.json"
+              autoplay
+              loop></tc-bodymovin-animation>
+        </template>
+      </demo-snippet>
+    </div>
+
+  </body>
+</html>

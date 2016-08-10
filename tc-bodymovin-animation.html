@@ -1,0 +1,307 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../iron-ajax/iron-ajax.html">
+<link rel="import" href="../paper-spinner/paper-spinner.html">
+<script src="../bodymovin/build/player/bodymovin.js"></script>
+
+<!--
+
+### tc-bodymovin-animation
+
+`tc-bodymovin-animation` is used for creating a bodymovin animation. It deals with async loading of animation data and provides a loader when the animation is loading. Alternatively, it can be initialized with animation data passed directly to it.
+
+All of the properties used to initialize Bodymovin have been exposed, however there are some methods that have not been exposed through the component. This is to avoid duplication of code. If a method exposed by Bodymovin, but not this component is needed, the bodymovin instance is exposed so it can be interacted with directly.
+
+The Bodymovin API docs can be found here: [https://github.com/bodymovin/bodymovin](https://github.com/bodymovin/bodymovin)
+
+Sample usage:
+
+    <tc-bodymovin-animation 
+        animation-json-url="../../bodymovin/demo/happy2016/data.json"
+        autoplay
+        loop></tc-bodymovin-animation>
+
+To use animation data directly:
+
+    <tc-bodymovin-animation 
+        animation-data="[[animationData]]"
+        autoplay
+        loop></tc-bodymovin-animation>
+
+
+### Styling
+
+`<tc-bodymovin-animation>` provides the following custom properties and mixins for styling:
+
+Custom property | Description | Default
+----------------|-------------|----------
+`--tc-bodymovin-animation-container` | Mixin applied to the bodymovin container. | `{}`
+`--tc-bodymovin-animation-loader` | Mixin applied to the loader spinner | `{}`
+
+@element tc-bodymovin-animation
+@demo demo/index.html 
+-->
+
+<dom-module id="tc-bodymovin-animation">
+  <template>
+    <style>
+      :host {
+        position: relative;
+
+        display: block;
+      }
+
+      .bodymovin__animation {
+        width: 100%;
+        height: 100%;
+
+        @apply(--tc-bodymovin-animation-container);
+      }
+
+      .bodymovin__loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        
+        -webkit-transform: translateX(-50%) translateY(-50%);
+        transform: translateX(-50%) translateY(-50%);
+
+        @apply(--tc-bodymovin-animation-loader);
+      }
+
+    </style>
+    
+    <iron-ajax
+        id="animationLoader"
+        url="[[animationJsonUrl]]"
+        handle-as="json"
+        on-response="_onAnimationDataLoaded"
+        on-request="_onAnimationDataRequestSent"
+        auto
+        loading="{{animationLoading}}"></iron-ajax>
+
+    <div class="bodymovin__animation" id="animation"></div>
+    <div class="bodymovin__placeholder"></div>
+
+    <paper-spinner id="loader" class="bodymovin__loading" hidden$="[[!animationLoading]]" active="[[animationLoading]]"></paper-spinner>
+
+  </template>
+
+  <script>
+    Polymer({
+
+      is: 'tc-bodymovin-animation',
+
+      properties: {
+
+        /** The URL to the bodymovin animation data json file. */
+        animationJsonUrl: String,
+
+        /** The animation data, either passed directly in here, or this is 
+            populated when the animation json file has been loaded. */
+        animationData: {
+          type: Object,
+          observer: '_initializeBodymovin'
+        },
+
+        /** Should the animation autoplay once loaded. */
+        autoplay: {
+          type: Boolean,
+          value: false
+        },
+
+        /** Specify the type of renderer Bodymovin should use. See the bodymovin
+            docs for a list of renderers */
+        renderer: {
+          type: String,
+          value: 'svg'
+        },
+
+        /** Specify whether the animation should loop or not. */
+        loop: {
+          type: Boolean,
+          value: false
+        },
+
+        /** Is truthy when the animation is loaded and ready to play */
+        animationLoaded: {
+          type: Boolean,
+          value: false,
+          notify: true,
+          readOnly: true
+        },
+
+        /** An object containing the render settings to be used, see the 
+            Bodymovin API docs for a list of render settings */
+        renderSettings: {
+          type: Object,
+          value: {}
+        },
+
+        /** Is truthy when an animation is loading. */
+        animationLoading: {
+          type: Boolean,
+          value: false
+        }
+      },
+
+      observers: [
+        '_initializeBodymovin(animationData, autoplay, renderer, loop, ' + 
+            'renderSettings)'
+      ],
+
+      /**
+       * The bodymovin instance. The bodymovin library has a load of methods and 
+       * events, which are not included in this element to avoid duplication. 
+       * If some of the methods are needed, this property is public, and 
+       * therefore can be accessed directly from outside this element. If you do
+       * need it, just make sure the animationLoaded property is truthy, 
+       * otherwise the bodymovin property will be null.
+       * 
+       * @type {Bodymovin}
+       */
+      bodymovin: null,
+
+      /**
+       * Cache the binding to the on complete method, used for adding and 
+       * removing events, while maintaining scope.
+       * 
+       * @type {Function}
+       * @private
+       */
+      _onCompleteBinding: null,
+
+      /**
+       * When the element is ready, set the on complete binding for future use.
+       */
+      ready: function() {
+        this._onCompleteBinding = this._onAnimationComplete.bind(this)
+      },
+
+      /**
+       * When the element is detached, do some cleanup. Stop the bodymovin 
+       * animation and destroy the instance.
+       */
+      detached: function() {
+        if (this.bodymovin) {
+          this.bodymovin.removeEventListener(
+              'complete', this._onCompleteBinding, false);
+
+          this.bodymovin.stop();
+          this.bodymovin.destroy();
+          this.bodymovin = null;
+        }
+      },
+
+      /**
+       * When the animationData is changed (either once it's loaded from
+       *    iron-ajax or passed directly, detect if there is already a bodymovin
+       *    instance, destroy it if it exists. Initialize bodymovin with the new
+       *    animationData.
+       *
+       * @private
+       */
+      _initializeBodymovin: function() {
+        this.debounce('_initializeBodymovin', function() {
+          if (this.bodymovin) {
+            this.bodymovin.removeEventListener(
+                'complete', this._onCompleteBinding, false);
+            this.bodymovin.destroy();
+          }
+
+          this.bodymovin = bodymovin.loadAnimation({
+            container: this.$.animation,
+            renderer: this.renderer,
+            loop: this.loop,
+            autoplay: this.autoplay,
+            animationData: this.animationData,
+            rendererSettings: this.renderSettings
+          });
+
+          this.bodymovin.addEventListener(
+                'complete', this._onCompleteBinding, false);
+        }, 50);
+      },
+
+      /**
+       * When the animation path changes and a new request is sent, set the
+       * loading boolean to false.
+       *
+       * @private
+       */
+      _onAnimationDataRequestSent: function() {
+        this._setAnimationLoaded(false);
+      },
+
+      /**
+       * Once the animation data has loaded, initialize bodymovin with the
+       * data from the response.
+       *
+       * @param {Event} e
+       * @private
+       */
+      _onAnimationDataLoaded: function(e) {
+
+        this.set('animationData', e.detail.response);
+        this._setAnimationLoaded(true);
+
+        // Async for 50, as the initialization has a 50ms debouncer on it. 
+        // Don't fire the event until the bodymovin element is actually ready.
+        this.async(function() {
+          Polymer.RenderStatus.afterNextRender(this, function() {
+            this.fire('tc-bodymovin-animation-loaded');
+          });
+        }, 50);
+      },
+
+      /**
+       * Fired when the animation completes. Fire an event to notify parent.
+       *
+       * @private
+       */
+      _onAnimationComplete: function() {
+        this.fire('tc-bodymovin-animation-complete');
+      },
+
+      /**
+       * Play the bodymovin animation.
+       */
+      play: function() {
+        if (this.animationLoaded) {
+          this.bodymovin.play();
+        }
+      },
+
+      /**
+       * Pause the bodymovin animation.
+       */
+      pause: function() {
+        if (this.animationLoaded) {
+          this.bodymovin.pause();
+        }
+      },
+
+      /**
+       * Stop the bodymovin animation.
+       */
+      stop: function() {
+        if (this.animationLoaded) {
+          this.bodymovin.stop();
+        }
+      }
+
+
+      /**
+       * Fired when the animation data has been loaded.
+       *
+       * @event tc-bodymovin-animation-loaded
+       */
+      
+      /**
+       * Fired when the bodymovin animation has played through and completed.
+       *
+       * @event tc-bodymovin-animation-complete
+       */
+
+    });
+  </script>
+</dom-module>

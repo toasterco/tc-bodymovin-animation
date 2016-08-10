@@ -1,0 +1,16 @@
+{
+  "name": "tc-bodymovin-animation",
+  "description": "An element for creating a Bodymovin animation",
+  "main": "tc-bodymovin-animation.html",
+  "dependencies": {
+    "polymer": "Polymer/polymer#^1.4.0",
+    "bodymovin": "https://github.com/bodymovin/bodymovin.git#^4.3.3",
+    "paper-spinner": "PolymerElements/paper-spinner#^1.2.0"
+  },
+  "devDependencies": {
+    "iron-component-page": "PolymerElements/iron-component-page#^1.0.0",
+    "iron-demo-helpers": "PolymerElements/iron-demo-helpers#^1.0.0",
+    "web-component-tester": "^4.0.0",
+    "webcomponentsjs": "webcomponents/webcomponentsjs#^0.7.0"
+  }
+}
